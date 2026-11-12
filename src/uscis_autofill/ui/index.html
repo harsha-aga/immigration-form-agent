@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>USCIS Autofill</title>
+<style>
+  :root {
+    --bg: #f6f6f4; --panel: #ffffff; --ink: #1c1c1a; --muted: #6b6b66; --line: #e2e1dc;
+    --accent: #1d4ed8; --accent-ink: #ffffff;
+    --ok: #166534; --ok-bg: #dcfce7; --warn: #92400e; --warn-bg: #fef3c7;
+    --bad: #991b1b; --bad-bg: #fee2e2; --info: #1e40af; --info-bg: #dbeafe;
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #151514; --panel: #1f1f1d; --ink: #ecece8; --muted: #9a9a93; --line: #34342f;
+      --accent: #6b8cff; --accent-ink: #0b1020;
+      --ok: #86efac; --ok-bg: #14301f; --warn: #fcd34d; --warn-bg: #3a2c0c;
+      --bad: #fca5a5; --bad-bg: #3b1515; --info: #93b4ff; --info-bg: #172447;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 14px 20px;
+    border-bottom: 1px solid var(--line); background: var(--panel); }
+  header h1 { font-size: 16px; margin: 0; font-weight: 650; }
+  .grow { flex: 1; }
+  .pill { font-size: 12px; padding: 2px 9px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
+  main { display: grid; grid-template-columns: 340px 1fr; gap: 16px; padding: 16px 20px 96px; max-width: 1240px; margin: 0 auto; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+  h2 { font-size: 13px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 650; }
+  .drop { border: 1.5px dashed var(--line); border-radius: var(--radius); padding: 18px; text-align: center; color: var(--muted); }
+  button { font: inherit; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    padding: 7px 12px; cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; padding: 10px 20px; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  ul.files { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+  ul.files li { border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; }
+  .row { display: flex; align-items: center; gap: 8px; }
+  .name { font-weight: 600; overflow-wrap: anywhere; }
+  .x { margin-left: auto; padding: 0 8px; border: none; color: var(--muted); font-size: 18px; line-height: 1; }
+  .note { font-size: 12.5px; margin-top: 6px; color: var(--warn); }
+  details { margin-top: 14px; }
+  summary { cursor: pointer; color: var(--muted); }
+  textarea, input[type=text], select { width: 100%; font: inherit; color: var(--ink); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; }
+  textarea { font-family: ui-monospace, Menlo, monospace; font-size: 12px; margin-top: 8px; resize: vertical; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 0 8px 8px 0; }
+  td { padding: 6px 8px 6px 0; vertical-align: top; border-top: 1px solid var(--line); }
+  td.label { width: 34%; padding-top: 12px; }
+  td.status { width: 34%; padding-top: 10px; }
+  tr.group td { border-top: none; padding: 18px 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 650; }
+  .chip { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 99px; font-weight: 600; white-space: nowrap; }
+  .chip.ok { color: var(--ok); background: var(--ok-bg); }
+  .chip.warn { color: var(--warn); background: var(--warn-bg); }
+  .chip.bad { color: var(--bad); background: var(--bad-bg); }
+  .chip.info { color: var(--info); background: var(--info-bg); }
+  .chip.none { color: var(--muted); background: transparent; border: 1px solid var(--line); font-weight: 400; }
+  .detail { font-size: 12px; color: var(--muted); margin-top: 3px; overflow-wrap: anywhere; }
+  .datefmt { margin-top: 4px; font-size: 12px; display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
+  .datefmt .raw { font: 600 12px ui-monospace, Menlo, monospace; padding: 1px 6px; border-radius: 5px;
+    background: var(--info-bg); color: var(--info); }
+  .datefmt .fmt { font-weight: 650; color: var(--ink); }
+  .datefmt .to { color: var(--muted); }
+  .banner { border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: 13px; }
+  .banner.bad { background: var(--bad-bg); color: var(--bad); }
+  .banner.warn { background: var(--warn-bg); color: var(--warn); }
+  .banner.info { background: var(--info-bg); color: var(--info); }
+  .banner.ok { background: var(--ok-bg); color: var(--ok); }
+  footer { position: fixed; left: 0; right: 0; bottom: 0; background: var(--panel); border-top: 1px solid var(--line);
+    padding: 12px 20px; display: flex; align-items: center; gap: 14px; }
+  .mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>USCIS Autofill</h1>
+  <span class="pill" id="form">Data retrieval for the USCIS online forms</span>
+  <span class="grow"></span>
+  <span class="pill" title="Files are read and written on this computer only. There is no network access in this app.">Nothing leaves this computer</span>
+</header>
+
+<main>
+  <section aria-labelledby="h-docs">
+    <h2 id="h-docs">1 · Documents</h2>
+    <div class="drop">
+      <div>Drop a passport, visa or I-94 here</div>
+      <div style="margin:10px 0 0"><button id="pick">Choose files…</button></div>
+    </div>
+    <ul class="files" id="files"></ul>
+    <details id="manual">
+      <summary>Type the two passport or visa lines by hand</summary>
+      <textarea id="mrz" rows="3" spellcheck="false" autocomplete="off" aria-label="Machine-readable zone, two lines of 44 characters"
+        placeholder="P&lt;UTOERIKSSON&lt;&lt;ANNA&lt;MARIA&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&#10;L898902C36UTO7408122F1204159ZE184226B&lt;&lt;&lt;&lt;&lt;10"></textarea>
+      <div class="row" style="margin-top:8px"><button id="useMrz">Use these lines</button><span class="detail" id="mrzMsg"></span></div>
+    </details>
+    <div class="detail" style="margin-top:14px">Read so far: passports and visas (by their machine-readable lines, which carry check digits) and the I-94 printout. The passport wins when documents disagree. Anything else you type below.</div>
+  </section>
+
+  <section aria-labelledby="h-review">
+    <h2 id="h-review">2 · Review</h2>
+    <div id="banners"></div>
+    <table>
+      <thead><tr><th>Field</th><th>Value</th><th>Where it came from</th></tr></thead>
+      <tbody id="fields"></tbody>
+    </table>
+  </section>
+</main>
+
+<footer>
+  <button class="primary" id="copy" disabled>Copy data sheet</button>
+  <select id="fmt" aria-label="Save format" style="width:auto"><option value="txt">Text</option><option value="csv">CSV</option><option value="json">JSON</option></select>
+  <button id="save" disabled>Save…</button>
+  <div id="result" class="detail" style="flex:1"></div>
+</footer>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, attrs, ...kids) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) { if (k === 'class') n.className = v; else n.setAttribute(k, v); }
+    for (const k of kids) n.append(k instanceof Node ? k : document.createTextNode(k));
+    return n;
+  };
+  const CHOICE_LABELS = { F: 'Female', M: 'Male', '1': '1 · Initial permission', '2': '2 · Replacement', '3': '3 · Renewal' };
+  const STATUS = {
+    from_document: ['ok', 'Read, check digits ✓'], read: ['info', 'Read (no checksum)'], mismatch: ['warn', 'Documents differ'], unverified: ['bad', 'Unverified ✗'], entered: ['info', 'Entered by you'],
+    overridden: ['warn', 'Changed from passport'], conflict: ['bad', 'Files disagree'], empty: ['none', 'Not filled']
+  };
+  const api = () => window.pywebview.api;
+  let busy = false;
+
+  function render(s) {
+    // files
+    const ul = $('files'); ul.replaceChildren();
+    for (const f of s.files) {
+      const li = el('li', {},
+        el('div', { class: 'row' }, el('span', { class: 'name' }, f.name),
+          el('span', { class: 'chip ' + (f.recognised ? 'ok' : 'warn') }, f.recognised ? (f.kind === 'passport-page' ? 'Passport, other page' : f.kind.replace('passport','Passport').replace('visa','Visa').replace('i94','I-94').replace('+',' + ')) : 'Not read'),
+          el('button', { class: 'x', title: 'Remove', 'aria-label': 'Remove ' + f.name, 'data-sha': f.sha256 }, '×')));
+      for (const w of f.warnings) li.append(el('div', { class: 'note' }, w));
+      li.querySelector('button').addEventListener('click', async () => render(await api().remove(f.sha256)));
+      ul.append(li);
+    }
+    if (!s.ocr) ul.append(el('li', {}, el('div', { class: 'note' }, 'Tesseract is not installed, so photos and scans cannot be read. Type the passport lines by hand, or install it with: brew install tesseract')));
+    // banners
+    const b = $('banners'); b.replaceChildren();
+    for (const n of s.notices || []) b.append(el('div', { class: 'banner info' }, n));
+    if (s.blockers.length) b.append(el('div', { class: 'banner bad' }, 'Fix before copying or saving: ' + s.blockers.join('; ')));
+    if (s.attention.length) {
+      const box = el('div', { class: 'banner warn' }, el('strong', {}, 'Needs your attention'));
+      for (const a of s.attention) box.append(el('div', {}, a));
+      b.append(box);
+    }
+    // fields
+    const tb = $('fields'); tb.replaceChildren();
+    let group = null;
+    for (const r of s.fields) {
+      const g = r.group;
+      if (g !== group) { group = g; tb.append(el('tr', { class: 'group' }, el('td', { colspan: '3' }, g))); }
+      let input;
+      if (r.choices) {
+        input = el('select', { 'aria-label': r.label }, el('option', { value: '' }, '— not set —'));
+        for (const c of r.choices) { const o = el('option', { value: c }, CHOICE_LABELS[c] || c); if (c === r.value) o.selected = true; input.append(o); }
+      } else {
+        input = el('input', { type: 'text', 'aria-label': r.label, value: r.value, autocomplete: 'off', spellcheck: 'false' });
+        if (r.hint) input.setAttribute('placeholder', r.hint);
+      }
+      input.addEventListener('change', async () => {
+        const out = await api().set_value(r.key, input.value);
+        render(out);
+        if (out.error) $('result').textContent = out.error;
+      });
+      const [cls, text] = STATUS[r.status];
+      const st = el('td', { class: 'status' }, el('span', { class: 'chip ' + cls }, text));
+      if (r.source) st.append(el('div', { class: 'detail' }, r.source));
+      if (r.raw && r.fmt) {
+        st.append(el('div', { class: 'datefmt' },
+          el('span', { class: 'to' }, 'Printed as'), el('span', { class: 'raw' }, r.raw),
+          el('span', { class: 'fmt' }, r.fmt),
+          r.display && r.display !== r.raw ? el('span', { class: 'to' }, '→ type ' + r.display) : ''));
+      }
+      if (r.detail) st.append(el('div', { class: 'detail' }, r.detail));
+      tb.append(el('tr', {}, el('td', { class: 'label' }, r.label), el('td', {}, input), st));
+    }
+    const nothing = s.fields.every((r) => !r.value);
+    $('copy').disabled = $('save').disabled = busy || s.blockers.length > 0 || nothing;
+  }
+  window.__render = render;
+
+  async function init() {
+    render(await api().state());
+    $('pick').addEventListener('click', async () => {
+      const r = $('result');
+      r.replaceChildren(el('div', { class: 'detail' }, 'Reading… a difficult scan can take up to a minute.'));
+      try { render(await api().pick_files()); } finally { r.replaceChildren(); }
+    });
+    $('useMrz').addEventListener('click', async () => {
+      const lines = $('mrz').value.split('\n').map((x) => x.trim()).filter(Boolean);
+      if (lines.length !== 2) { $('mrzMsg').textContent = 'Enter exactly two lines.'; return; }
+      $('mrzMsg').textContent = '';
+      render(await api().add_mrz(lines[0], lines[1]));
+    });
+    const say = (cls, text) => { const r = $('result'); r.replaceChildren(el('div', { class: 'banner ' + cls, style: 'margin:0' }, text)); };
+    $('copy').addEventListener('click', async () => {
+      const out = await api().copy_sheet();
+      out.ok ? say('ok', 'Copied. Paste it somewhere private; it contains personal data.') : say('bad', out.error);
+    });
+    $('save').addEventListener('click', async () => {
+      const out = await api().save_sheet($('fmt').value);
+      if (out.ok) {
+        const r = $('result'); r.replaceChildren(el('div', { class: 'banner ok', style: 'margin:0' }, 'Saved. ',
+          el('button', { id: 'reveal' }, 'Show in Finder')));
+        $('reveal').addEventListener('click', () => api().reveal(out.output));
+      } else if (out.error !== 'cancelled') say('bad', out.error);
+    });
+  }
+  window.addEventListener('pywebviewready', init);
+})();
+</script>
+</body>
+</html>

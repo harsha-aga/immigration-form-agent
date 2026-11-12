@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+
+# Never commit client data, downloaded USCIS blanks, or generated outputs.
+spikes/downloads/
+spikes/out/
+*.vault/
